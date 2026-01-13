@@ -18,7 +18,6 @@ public class SecurityConfig {
     private final DevicePostureFilter devicePostureFilter;
     private final MonitoringFilter monitoringFilter;
 
-    // Inject the filters created in Phase 2 and 3
     public SecurityConfig(DevicePostureFilter devicePostureFilter, MonitoringFilter monitoringFilter) {
         this.devicePostureFilter = devicePostureFilter;
         this.monitoringFilter = monitoringFilter;
@@ -30,16 +29,14 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/public/**", "/api/device/heartbeat").permitAll()
+                        // UPDATE: Added "/api/system/public-status" to the whitelist
+                        .requestMatchers("/api/public/**", "/api/device/heartbeat", "/api/system/public-status").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}))
-
-                // ORDER MATTERS:
-                // 1. Device Filter runs FIRST to block bad devices early.
+                // 1. Block bad devices immediately
                 .addFilterAfter(devicePostureFilter, UsernamePasswordAuthenticationFilter.class)
-
-                // 2. Monitoring Filter runs essentially around the request to log the outcome.
+                // 2. Log outcome of the authorized/device-checked request
                 .addFilterAfter(monitoringFilter, DevicePostureFilter.class);
 
         return http.build();
@@ -48,16 +45,10 @@ public class SecurityConfig {
     @Bean
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-
-        // THIS LINE CONNECTS FRONTEND TO BACKEND
-        // It tells Spring Boot: "If a request comes from localhost:5173, allow it."
-        config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
-
+        config.setAllowedOrigins(List.of("http://localhost:5173"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
-
-        // THIS ALLOWS THE CUSTOM HEADER WE USE FOR DEVICE CHECKS
+        // Ensure "X-Device-Id" is allowed, as the frontend sends it
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Device-Id"));
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
