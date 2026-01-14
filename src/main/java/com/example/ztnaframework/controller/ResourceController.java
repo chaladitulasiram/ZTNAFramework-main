@@ -1,28 +1,39 @@
 package com.example.ztnaframework.controller;
 
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
+import com.example.ztnaframework.model.AccessLog;
+import com.example.ztnaframework.repository.AccessLogRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/resource")
 public class ResourceController {
 
-    @GetMapping("/secure-data")
-    public Map<String, Object> getSecureResource(@AuthenticationPrincipal Jwt principal) {
-        // In a ZTNA model, we log exactly WHO accessed WHAT
-        String userId = principal.getSubject();
-        String email = principal.getClaimAsString("email");
+    private final AccessLogRepository accessLogRepository;
 
-        return Map.of(
-                "status", "Access Granted",
-                "message", "This is a segmented secure resource.",
-                "user", email,
-                "verification_level", "Identity Verified (Phase 1)"
-        );
+    public ResourceController(AccessLogRepository accessLogRepository) {
+        this.accessLogRepository = accessLogRepository;
+    }
+
+    // --- NEW: Real Audit Logs ---
+    @GetMapping("/logs")
+    public ResponseEntity<List<AccessLog>> getRealLogs() {
+        // Returns all logs (In production, use pagination!)
+        return ResponseEntity.ok(accessLogRepository.findAll());
+    }
+
+    // Mock Segments (Since we don't have a Segment Table yet, we define real protected zones)
+    @GetMapping("/segments")
+    public ResponseEntity<List<String>> getSegments() {
+        return ResponseEntity.ok(List.of(
+                "HR Database (Secure)",
+                "Engineering-Prod (Encrypted)",
+                "Salesforce-Gateway",
+                "Internal-Wiki"
+        ));
     }
 }

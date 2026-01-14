@@ -1,11 +1,11 @@
 package com.example.ztnaframework.controller;
 
-
-
+import com.example.ztnaframework.service.DeviceService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -15,27 +15,35 @@ import java.util.Map;
 @RequestMapping("/api/user")
 public class UserController {
 
-    // You should inject a UserRepository here to save to a real DB
-    // private final UserRepository userRepository;
+    private final DeviceService deviceService;
+
+    // Inject the service
+    public UserController(DeviceService deviceService) {
+        this.deviceService = deviceService;
+    }
 
     @PostMapping("/sync")
-    public ResponseEntity<?> syncUserIdentity(@AuthenticationPrincipal Jwt principal) {
-        // 1. Extract details from the Supabase JWT
-        String userId = principal.getSubject(); // The UUID from Supabase
+    public ResponseEntity<?> syncUser(
+            @AuthenticationPrincipal Jwt principal,
+            @RequestHeader(value = "X-Device-Id", required = false) String deviceId) {
+
         String email = principal.getClaimAsString("email");
+        String userId = principal.getSubject();
 
-        // 2. TODO: Check if user exists in your local DB. If not, save them.
-        // if (!userRepository.existsById(userId)) {
-        //     User newUser = new User(userId, email, "ACTIVE");
-        //     userRepository.save(newUser);
-        // }
+        System.out.println("🔄 Received Sync Request: " + email);
 
-        System.out.println("Synced User: " + email + " [" + userId + "]");
+        if (deviceId != null && !deviceId.isEmpty()) {
+            // Call the service to save to DB
+            deviceService.registerDevice(deviceId, userId);
 
-        return ResponseEntity.ok(Map.of(
-                "status", "SYNCED",
-                "userId", userId,
-                "message", "User identity synchronized with ZTNA Core"
-        ));
+            return ResponseEntity.ok(Map.of(
+                    "status", "SYNCED",
+                    "userId", userId,
+                    "deviceId", deviceId,
+                    "message", "User and Device successfully registered in database"
+            ));
+        } else {
+            return ResponseEntity.badRequest().body(Map.of("error", "X-Device-Id header missing"));
+        }
     }
 }

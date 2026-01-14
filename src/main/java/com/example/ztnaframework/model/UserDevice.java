@@ -1,6 +1,5 @@
 package com.example.ztnaframework.model;
 
-
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -18,7 +17,11 @@ public class UserDevice {
 
     private String osType;
     private String osVersion;
+
+    // Lombok generates: isFirewallOn() and setFirewallOn(boolean)
     private boolean isFirewallOn;
+
+    // Lombok generates: isDiskEncrypted() and setDiskEncrypted(boolean)
     private boolean isDiskEncrypted;
 
     private String status; // 'COMPLIANT', 'NON_COMPLIANT'
