@@ -25,8 +25,10 @@ public class DevicePostureFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Skip filter for public endpoints or the heartbeat endpoint itself
-        if (path.startsWith("/api/public") || path.startsWith("/api/device/heartbeat")) {
+        // FIX: Added "/api/system/public-status" to the exclusion list
+        if (path.startsWith("/api/public") ||
+                path.startsWith("/api/device/heartbeat") ||
+                path.startsWith("/api/system/public-status")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -45,7 +47,7 @@ public class DevicePostureFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 3. If valid, proceed to the next security chain (User Identity Check)
+        // 3. If valid, proceed to the next security chain
         filterChain.doFilter(request, response);
     }
 }

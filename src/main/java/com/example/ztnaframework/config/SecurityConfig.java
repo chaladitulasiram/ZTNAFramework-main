@@ -29,14 +29,12 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // UPDATE: Added "/api/system/public-status" to the whitelist
+                        // CRITICAL: Ensure /api/system/public-status is listed here
                         .requestMatchers("/api/public/**", "/api/device/heartbeat", "/api/system/public-status").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}))
-                // 1. Block bad devices immediately
                 .addFilterAfter(devicePostureFilter, UsernamePasswordAuthenticationFilter.class)
-                // 2. Log outcome of the authorized/device-checked request
                 .addFilterAfter(monitoringFilter, DevicePostureFilter.class);
 
         return http.build();
@@ -46,9 +44,9 @@ public class SecurityConfig {
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of("http://localhost:5173"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
-        // Ensure "X-Device-Id" is allowed, as the frontend sends it
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Device-Id"));
+        config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
