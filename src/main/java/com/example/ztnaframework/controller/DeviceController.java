@@ -24,7 +24,6 @@ public class DeviceController {
         this.deviceRepository = deviceRepository;
     }
 
-    // --- NEW: Get All Devices (Real Data) ---
     @GetMapping("/list")
     public ResponseEntity<List<UserDevice>> getAllDevices() {
         List<UserDevice> devices = deviceRepository.findAll();
@@ -36,6 +35,17 @@ public class DeviceController {
             @AuthenticationPrincipal Jwt principal,
             @RequestBody DevicePostureDTO posture) {
 
+        // FIX: Check if principal is null (Anonymous user)
+        if (principal == null) {
+            // If user is not logged in, we cannot link the device to a user.
+            // We return OK to stop frontend errors, but we don't save anything.
+            return ResponseEntity.ok(Map.of(
+                    "status", "IGNORED",
+                    "message", "Heartbeat ignored: User not logged in."
+            ));
+        }
+
+        // If logged in, proceed as normal
         posture.setUserId(principal.getSubject());
         boolean isHealthy = deviceService.evaluatePosture(posture);
 
