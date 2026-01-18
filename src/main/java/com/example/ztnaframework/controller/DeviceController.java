@@ -26,8 +26,7 @@ public class DeviceController {
 
     @GetMapping("/list")
     public ResponseEntity<List<UserDevice>> getAllDevices() {
-        List<UserDevice> devices = deviceRepository.findAll();
-        return ResponseEntity.ok(devices);
+        return ResponseEntity.ok(deviceRepository.findAll());
     }
 
     @PostMapping("/heartbeat")
@@ -35,24 +34,18 @@ public class DeviceController {
             @AuthenticationPrincipal Jwt principal,
             @RequestBody DevicePostureDTO posture) {
 
-        // FIX: Check if principal is null (Anonymous user)
-        if (principal == null) {
-            // If user is not logged in, we cannot link the device to a user.
-            // We return OK to stop frontend errors, but we don't save anything.
-            return ResponseEntity.ok(Map.of(
-                    "status", "IGNORED",
-                    "message", "Heartbeat ignored: User not logged in."
-            ));
+        if (principal != null) {
+            // Set the User ID from the authenticated token
+            posture.setUserId(principal.getSubject());
         }
 
-        // If logged in, proceed as normal
-        posture.setUserId(principal.getSubject());
+        // evaluatePosture will now SAVE the device to the DB
         boolean isHealthy = deviceService.evaluatePosture(posture);
 
         if (isHealthy) {
-            return ResponseEntity.ok(Map.of("status", "COMPLIANT", "message", "Access granted."));
+            return ResponseEntity.ok(Map.of("status", "COMPLIANT", "message", "Device verified."));
         } else {
-            return ResponseEntity.status(403).body(Map.of("status", "NON_COMPLIANT", "message", "Device unsafe."));
+            return ResponseEntity.status(403).body(Map.of("status", "NON_COMPLIANT", "message", "Security checks failed."));
         }
     }
 }

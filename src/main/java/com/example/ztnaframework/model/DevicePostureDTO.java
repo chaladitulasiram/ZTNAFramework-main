@@ -5,13 +5,10 @@ import lombok.Data;
 @Data
 public class DevicePostureDTO {
     private String deviceId;
-    private String userId;
-    private String osType;     // e.g., "Windows 11"
-    private String osVersion;  // e.g., "10.0.22000"
-
-    // RENAMED to match UserDevice Entity
+    private String userId; // Keep as String here, converted in Service
+    private String osType;
+    private String osVersion;
     private boolean isFirewallOn;
     private boolean isDiskEncrypted;
-
     private boolean antivirusEnabled;
 }

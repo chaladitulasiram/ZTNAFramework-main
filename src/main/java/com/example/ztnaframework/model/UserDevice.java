@@ -3,6 +3,7 @@ package com.example.ztnaframework.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.UUID; // Import UUID
 
 @Entity
 @Table(name = "user_devices")
@@ -12,19 +13,17 @@ public class UserDevice {
     @Column(name = "device_id")
     private String deviceId;
 
+    // CHANGED: String -> UUID to match Database Type
     @Column(name = "user_id")
-    private String userId;
+    private UUID userId;
 
     private String osType;
     private String osVersion;
 
-    // Lombok generates: isFirewallOn() and setFirewallOn(boolean)
     private boolean isFirewallOn;
-
-    // Lombok generates: isDiskEncrypted() and setDiskEncrypted(boolean)
     private boolean isDiskEncrypted;
 
-    private String status; // 'COMPLIANT', 'NON_COMPLIANT'
+    private String status;
     private LocalDateTime lastSeen;
 
     @PrePersist
