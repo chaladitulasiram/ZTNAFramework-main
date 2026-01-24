@@ -1,49 +1,56 @@
 package com.example.ztnaframework.controller;
 
-import com.example.ztnaframework.service.DeviceService;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api/auth")
 public class UserController {
 
-    private final DeviceService deviceService;
+    @Value("${jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}")
+    private String jwtSecret;
 
-    // Inject the service
-    public UserController(DeviceService deviceService) {
-        this.deviceService = deviceService;
-    }
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> credentials) {
+        // Mock authentication - In a real app, check DB password
+        String email = credentials.get("email");
+        if (email == null) return ResponseEntity.badRequest().build();
 
-    @PostMapping("/sync")
-    public ResponseEntity<?> syncUser(
-            @AuthenticationPrincipal Jwt principal,
-            @RequestHeader(value = "X-Device-Id", required = false) String deviceId) {
+        try {
+            // Create HMAC signer
+            JWSSigner signer = new MACSigner(jwtSecret.getBytes());
 
-        String email = principal.getClaimAsString("email");
-        String userId = principal.getSubject();
+            // Prepare JWT with claims
+            JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+                    .subject(email)
+                    .issuer("http://localhost:8080")
+                    .expirationTime(Date.from(Instant.now().plusSeconds(3600))) // 1 hour
+                    .claim("roles", "USER")
+                    .build();
 
-        System.out.println("🔄 Received Sync Request: " + email);
+            SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet);
+            signedJWT.sign(signer);
 
-        if (deviceId != null && !deviceId.isEmpty()) {
-            // Call the service to save to DB
-            deviceService.registerDevice(deviceId, userId);
+            Map<String, String> response = new HashMap<>();
+            response.put("token", signedJWT.serialize());
+            response.put("user", email);
 
-            return ResponseEntity.ok(Map.of(
-                    "status", "SYNCED",
-                    "userId", userId,
-                    "deviceId", deviceId,
-                    "message", "User and Device successfully registered in database"
-            ));
-        } else {
-            return ResponseEntity.badRequest().body(Map.of("error", "X-Device-Id header missing"));
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
         }
     }
 }
