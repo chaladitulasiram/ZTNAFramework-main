@@ -22,7 +22,6 @@ public class SecurityConfig {
 
     private final JwtDecoder jwtDecoder;
 
-    // Inject the JwtDecoder we defined in LocalJwtConfig
     public SecurityConfig(JwtDecoder jwtDecoder) {
         this.jwtDecoder = jwtDecoder;
     }
@@ -35,6 +34,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/api/public/**", "/error").permitAll()
+                        // Require authentication for all other endpoints
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
@@ -47,7 +47,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Allow the frontend URL (adjust port if Vite uses something other than 5173)
+        // Allow Vite frontend
         configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://127.0.0.1:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Device-Id"));

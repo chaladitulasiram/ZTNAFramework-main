@@ -35,17 +35,24 @@ public class DeviceController {
             @RequestBody DevicePostureDTO posture) {
 
         if (principal != null) {
-            // Set the User ID from the authenticated token
+            // The Subject is now guaranteed to be a UUID string from UserController
             posture.setUserId(principal.getSubject());
         }
 
-        // evaluatePosture will now SAVE the device to the DB
         boolean isHealthy = deviceService.evaluatePosture(posture);
 
+        // Return a structured response that the frontend expects
         if (isHealthy) {
-            return ResponseEntity.ok(Map.of("status", "COMPLIANT", "message", "Device verified."));
+            return ResponseEntity.ok(Map.of(
+                    "status", "COMPLIANT",
+                    "message", "Device verified.",
+                    "timestamp", System.currentTimeMillis()
+            ));
         } else {
-            return ResponseEntity.status(403).body(Map.of("status", "NON_COMPLIANT", "message", "Security checks failed."));
+            return ResponseEntity.status(403).body(Map.of(
+                    "status", "NON_COMPLIANT",
+                    "message", "Security checks failed."
+            ));
         }
     }
 }

@@ -14,42 +14,54 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
 public class UserController {
 
-    @Value("${jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}")
+    @Value("${jwt.secret}")
     private String jwtSecret;
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> credentials) {
-        // Mock authentication - In a real app, check DB password
+    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> credentials) {
         String email = credentials.get("email");
-        if (email == null) return ResponseEntity.badRequest().build();
+
+        // Mock Authentication Logic
+        // In a real app, you would check the database for the password.
+        if (email == null || email.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
 
         try {
+            // Generate a consistent UUID for this mock user (based on email bytes)
+            // This ensures the same email always gets the same ID for testing.
+            String mockUserId = UUID.nameUUIDFromBytes(email.getBytes()).toString();
+
             // Create HMAC signer
             JWSSigner signer = new MACSigner(jwtSecret.getBytes());
 
             // Prepare JWT with claims
             JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                    .subject(email)
+                    .subject(mockUserId) // FIXED: Subject is now a UUID
                     .issuer("http://localhost:8080")
-                    .expirationTime(Date.from(Instant.now().plusSeconds(3600))) // 1 hour
+                    .expirationTime(Date.from(Instant.now().plusSeconds(86400))) // 24 hours
                     .claim("roles", "USER")
+                    .claim("email", email) // Store email in a separate claim
                     .build();
 
             SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet);
             signedJWT.sign(signer);
 
-            Map<String, String> response = new HashMap<>();
+            Map<String, Object> response = new HashMap<>();
             response.put("token", signedJWT.serialize());
             response.put("user", email);
+            response.put("userId", mockUserId);
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }

@@ -13,13 +13,16 @@ import java.nio.charset.StandardCharsets;
 @Configuration
 public class LocalJwtConfig {
 
-    // Added a default value (after the colon) so the app starts even if the property is missing
-    @Value("${jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}")
+    @Value("${jwt.secret}")
     private String jwtSecret;
 
     @Bean
     public JwtDecoder jwtDecoder() {
-        // Use the secret key from application.properties to validate HS256 tokens
+        // Validate secret length for HS256 (must be at least 32 bytes)
+        if (jwtSecret.length() < 32) {
+            throw new IllegalArgumentException("JWT Secret must be at least 32 characters long for HS256");
+        }
+
         SecretKeySpec secretKey = new SecretKeySpec(
                 jwtSecret.getBytes(StandardCharsets.UTF_8),
                 "HmacSHA256"
