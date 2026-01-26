@@ -23,19 +23,26 @@ public class UserController {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
+    // --- 👇 PASTE THIS NEW METHOD HERE 👇 ---
+    @PostMapping("/register")
+    public ResponseEntity<Map<String, Object>> register(@RequestBody Map<String, String> credentials) {
+        // For this mock backend, we treat Register exactly like Login
+        // This generates a token immediately so the user enters the dashboard.
+        return login(credentials);
+    }
+    // ----------------------------------------
+
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> credentials) {
         String email = credentials.get("email");
 
         // Mock Authentication Logic
-        // In a real app, you would check the database for the password.
         if (email == null || email.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
 
         try {
-            // Generate a consistent UUID for this mock user (based on email bytes)
-            // This ensures the same email always gets the same ID for testing.
+            // Generate a consistent UUID for this mock user
             String mockUserId = UUID.nameUUIDFromBytes(email.getBytes()).toString();
 
             // Create HMAC signer
@@ -43,11 +50,11 @@ public class UserController {
 
             // Prepare JWT with claims
             JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                    .subject(mockUserId) // FIXED: Subject is now a UUID
+                    .subject(mockUserId)
                     .issuer("http://localhost:8080")
                     .expirationTime(Date.from(Instant.now().plusSeconds(86400))) // 24 hours
                     .claim("roles", "USER")
-                    .claim("email", email) // Store email in a separate claim
+                    .claim("email", email)
                     .build();
 
             SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet);

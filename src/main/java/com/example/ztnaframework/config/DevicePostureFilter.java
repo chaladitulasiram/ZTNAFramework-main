@@ -25,10 +25,11 @@ public class DevicePostureFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // FIX: Added "/api/system/public-status" to the exclusion list
+        // FIX: Added "/api/auth" to the exclusion list so users can Login/Register
         if (path.startsWith("/api/public") ||
                 path.startsWith("/api/device/heartbeat") ||
-                path.startsWith("/api/system/public-status")) {
+                path.startsWith("/api/system/public-status") ||
+                path.startsWith("/api/auth")) {  // <--- THIS IS THE CRITICAL FIX
             filterChain.doFilter(request, response);
             return;
         }
